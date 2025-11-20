@@ -1,0 +1,5 @@
+{
+  "name": "Sistem Informasi Absensi Siswa",
+  "description": "A comprehensive student attendance management system simulating RFID card scanning, CRUD operations for master data, and AI-powered attendance reporting.",
+  "requestFramePermissions": []
+}
