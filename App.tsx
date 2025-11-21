@@ -2234,6 +2234,9 @@ export default function App() {
   const [currentUser, setCurrentUser] = useLocalStorage<any>('anoza_user', null);
   const [isDarkMode, setIsDarkMode] = useLocalStorage<boolean>('anoza_theme', true);
 
+  // New state for tracking WhatsApp connection status
+  const [isWaDisconnected, setIsWaDisconnected] = useState(false);
+
   // Derived state for login status
   const isLoggedIn = !!currentUser;
 
@@ -2298,13 +2301,17 @@ Terima kasih.`;
 
       if (data.status) {
         console.log("WA Berhasil Dikirim");
+        if (isWaDisconnected) setIsWaDisconnected(false);
       } else {
-        // Improved error logging to show the object content
-        console.error("Gagal mengirim WA (Fonnte Error):", JSON.stringify(data));
-        
         // Handle specific "Disconnected" error to guide the user
-        if (data.reason === 'request invalid on disconnected device') {
-            alert(`GAGAL KIRIM WA: Device Fonnte Terputus!\n\nMohon buka https://fonnte.com, login, dan SCAN QR CODE kembali agar notifikasi dapat berjalan.\n\n(Siswa: ${student.name})`);
+        // Error: {"reason":"request invalid on disconnected device",...}
+        if (data.reason === 'request invalid on disconnected device' || data.reason === 'disconnect') {
+            console.warn("Fonnte Device Disconnected");
+            setIsWaDisconnected(true);
+            // We use the persistent banner instead of alert to avoid spamming the operator
+        } else {
+            // Only log other types of errors
+            console.error("Gagal mengirim WA (Fonnte Error):", JSON.stringify(data));
         }
       }
     } catch (err) {
@@ -2626,6 +2633,25 @@ Terima kasih.`;
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-8 custom-scrollbar flex flex-col">
+           {isWaDisconnected && (
+              <div className="mb-6 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-start justify-between shadow-sm animate-in fade-in slide-in-from-top-2">
+                <div className="flex gap-3">
+                   <AlertCircle size={24} className="flex-shrink-0 mt-0.5" />
+                   <div>
+                     <h3 className="font-bold text-base">Koneksi WhatsApp Terputus</h3>
+                     <p className="text-sm mt-1 opacity-90">
+                       Sistem mendeteksi perangkat WhatsApp tidak terhubung. Notifikasi WA tidak akan terkirim.
+                       <br/>
+                       Silakan buka <a href="https://fonnte.com" target="_blank" rel="noreferrer" className="underline font-bold hover:text-red-900 dark:hover:text-red-100">Dashboard Fonnte</a>, hubungkan perangkat, lalu coba lagi.
+                     </p>
+                   </div>
+                </div>
+                <button onClick={() => setIsWaDisconnected(false)} className="p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+           )}
+
            <div className="flex-1">
                {activePage === Page.DASHBOARD && <Dashboard students={students} records={records} classes={classes} teachers={teachers} currentUser={currentUser} />}
                {activePage === Page.PRESENSI && <AttendanceScanner students={students} records={records} onScan={handleScan} initialMode={presensiMode} />}
